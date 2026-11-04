@@ -1,0 +1,29 @@
+# 本机凭据和运行状态，不得提交
+.env
+.env.*
+.mini-claude-code/
+.memory/
+.sessions/
+.transcripts/
+.tasks/
+.task_outputs/
+.mailboxes/
+.scheduled_tasks.json*
+.scheduled_tasks.lock
+.worktrees/
+*.log
+# Python 构建与开发环境
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.ipynb

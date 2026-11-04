@@ -1,0 +1,7 @@
+include pyproject.toml README.md LICENSE
+recursive-include mini_claude_code *.py
+recursive-include docs *.md
+prune tests
+prune examples
+prune scripts
+global-exclude *.pyc .env *.ipynb

@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mini-claude-code"
+dynamic = ["version"]
+description = "面向 Harness Engineering 的 Coding Agent CLI"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [
+    { name = "zzhoukaixuan" },
+]
+dependencies = [
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+    "PyYAML>=6.0",
+    "rich>=13.7",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.27,<2"] # 可选 Streamable HTTP 客户端依赖
+
+[project.scripts]
+miniclaude = "mini_claude_code.cli:main"
+
+[project.urls]
+Repository = "https://github.com/zzhoukaixuan/mini-claude-code"
+
+[tool.setuptools.dynamic]
+version = { attr = "mini_claude_code.__version__" }
+
+[tool.setuptools]
+include-package-data = false # 发行包仅含产品代码，不从 Git 清单收集课程/个人资料
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "mini_claude_code",
+    "mini_claude_code.*",
+]
+exclude = ["tests*", "evaluation*"]
