@@ -65,7 +65,6 @@ miniclaude mcp remove maps
 `add` 交互录入服务地址与认证；不要把真实 Key 写入仓库或聊天示例。
 `test` 会真实连接服务并发现工具。chat 内连接与工具调用仍受权限控制，服务端声明不能自动授予权限。
 仅实现 Streamable HTTP，不支持 stdio 或 OAuth 自动登录。超时不代表远端未执行，不自动重放副作用工具。
-本地服务示例：`python examples/mcp_http_server.py`（需 MCP 依赖），仅供回环地址测试。
 
 ## Harness 能力与边界
 
@@ -77,27 +76,59 @@ miniclaude mcp remove maps
 
 Worktree 只作用于已绑定并通过核验的 Task；不自动初始化 Git 或合并成员成果。
 邮箱投递仍是 at-most-once；后台执行状态不能完整跨进程恢复；权限与路径检查不能替代 OS 沙箱。
-更多内容见 [架构](docs/ARCHITECTURE.md)、[安全](docs/SECURITY.md)、[限制](docs/LIMITATIONS.md)。
+
+### 安全与已知限制
+
+- 本工具以当前用户权限执行；Shell 黑名单不能证明任意命令安全，只在可信、可恢复的工作区使用。
+- MCP 默认 HTTPS，禁止自动重定向；HTTP 仅显式放行字面回环地址。外部描述和结果可能含提示注入，只读声明不是授权。
+- MCP 当前仅支持文本结果，不支持旧式 SSE、OAuth 自动登录、多模态及 structuredContent；配置不热加载，也不自动重连。
+- 配置以受限权限明文保存：Windows 当前用户 DACL，POSIX 目录 700/文件 600。不要分享配置、`.env`、会话、记忆、任务输出和未经审查的日志。
+- 已知凭据的精确替换仅保护部分日志和持久化内容，不保证抵御编码、分片或主动外泄。
+- 会话缺失工具结果时补充“执行状态未知”的占位符，不自动重放；也不恢复文件读取版本，编辑前需重新读取。
+- durable Cron 仅保存定义，后台执行、触发队列和结果不会完整恢复；退出期间的软停止不保证立即中断请求或撤销副作用。
+- 邮箱处理失败不自动重投；遗留任务认领需人工核验恢复，恢复不撤销磁盘修改。
+- doctor 不验证密钥有效性、服务在线状态、目录可写性或权限策略完整性；本地 Prompt 缓存不代表 Provider 缓存命中。
+
+## 目录说明
+
+普通使用者只需阅读本页的安装、配置和使用步骤；`tests/` 供开发者验证修改，无需手动运行其中的文件来使用产品。
+
+```text
+mini-claude-code/
+├── mini_claude_code/   产品源码：CLI、配置与 agent 运行时
+├── tests/             离线产品测试与模拟工具，不安装到用户环境
+├── README.md          使用说明、目录介绍和安全边界
+├── pyproject.toml     依赖、版本、许可证元数据与 miniclaude 安装入口
+├── LICENSE            MIT 许可证
+└── .gitignore         排除密钥、运行记录及本地构建产物
+```
+
+开发者可从 `mini_claude_code/cli.py` → `backend.py` → `agent/core/agent_loop.py` 阅读主调用链。
+聊天的会话入口位于 `agent/sessions/startup.py`；`agent/runtime.py` 负责工具、权限和后台组件的组装。
+工具执行遵循 tool_use → PreToolUse/权限 → Handler → PostToolUse → tool_result 配对流程。
+`agent/` 下的 `context`、`memory`、`tasks`、`jobs`、`scheduler`、`team`、`worktrees` 和 `mcp`
+分别承载上下文、记忆、持久任务、后台作业、定时调度、团队协作、工作区隔离和外部工具接入。
+帮助和配置管理不启动 Agent；chat 退出时有界等待并清理后台组件。当前仍有进程级状态，不是可重入的多工作区 Runtime。
 
 ## 开发与验证
 
 ```powershell
 python tests/run_tests.py
-python scripts/build_release.py
 ```
 
 测试使用模拟模型，不消耗真实 API 额度。发行包测试验证 sdist、wheel、许可证和独立安装；
 临时环境离线复用本机依赖，不等同于全新机器上的联网安装验证。
-构建输出位于 `dist/`，附 SHA-256 清单；不会自动上传或覆盖同名产物。
 本仓库测试是产品发布测试子集，不声称提供完整任务成功率或基准评测成绩。
 
-```text
-mini_claude_code/   产品入口、配置与 agent 运行时
-tests/             产品测试与模拟服务
-examples/          本地 MCP 示例
-docs/              架构、安全与限制
-scripts/           发布包构建
+需要构建发行包的维护者可以使用标准构建工具（普通使用者无需执行）：
+
+```powershell
+python -m pip install build
+python -m build
 ```
+
+产物位于被 Git 忽略的 `dist/`，构建不等于上传 PyPI。wheel 只安装产品包；源码发行包可能包含测试，
+两者均应包含 README 元数据及 LICENSE。发布前仍需检查内容，勿在源码中放入真实凭据。
 
 ## 许可证与致谢
 

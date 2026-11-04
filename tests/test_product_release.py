@@ -1,4 +1,4 @@
-"""产品目录迁移与发布边界：源码等价性、只读诊断、独立发行包安装，无真实 API。"""
+"""产品发布边界：源码隔离、只读诊断、独立发行包安装，无真实 API。"""
 
 import ast
 from contextlib import redirect_stdout
@@ -72,10 +72,9 @@ class ProductReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)
             source=root/'source'; source.mkdir()
-            for name in ('pyproject.toml','README.md','MANIFEST.in','LICENSE'):
+            for name in ('pyproject.toml','README.md','LICENSE'):
                 shutil.copy2(ROOT/name,source/name)
             shutil.copytree(ROOT/'mini_claude_code',source/'mini_claude_code',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
-            shutil.copytree(ROOT/'docs',source/'docs')
             # 这些毒丸若进入发行包即失败；不接触用户真实配置或课程文件。
             for name in ('s19','tests','.memory'):
                 (source/name).mkdir()
@@ -91,6 +90,8 @@ class ProductReleaseTests(unittest.TestCase):
             archive,=(source/'dist').glob('*.tar.gz')
             unpack=root/'unpack'; unpack.mkdir()
             with tarfile.open(archive) as package:
+                names = {Path(member.name).parts[-1] for member in package.getmembers()}
+                self.assertTrue({'README.md', 'LICENSE', 'pyproject.toml'} <= names)
                 for member in package.getmembers():
                     parts=Path(member.name).parts
                     if len(parts)>1:
@@ -134,3 +135,12 @@ print('isolated-wheel-runtime-ok')
 '''
             result=run([str(python),'-I','-X','utf8','-c',script])
             self.assertIn('isolated-wheel-runtime-ok',result.stdout)
+
+    def test_readme_local_links_exist(self):
+        import re
+        text = (ROOT/'README.md').read_text(encoding='utf-8')
+        for target in re.findall(r'\]\(([^)]+)\)', text):
+            if '://' not in target and not target.startswith('#'):
+                self.assertTrue((ROOT/target.split('#')[0]).exists(), target)
+        self.assertNotIn('scripts/build_release.py', text)
+        self.assertNotIn('examples/mcp_http_server.py', text)

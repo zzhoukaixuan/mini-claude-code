@@ -62,7 +62,7 @@ class PackagingMetadataTests(unittest.TestCase):
             root = Path(temporary_directory)
             source = root / "source"
             source.mkdir()
-            for name in ("pyproject.toml", "README.md", "MANIFEST.in", "LICENSE"):
+            for name in ("pyproject.toml", "README.md", "LICENSE"):
                 shutil.copy2(PROJECT_ROOT / name, source / name)
             for name in ("mini_claude_code",):
                 shutil.copytree(
